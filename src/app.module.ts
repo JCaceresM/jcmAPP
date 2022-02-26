@@ -1,17 +1,27 @@
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { dbConfig } from './confing/app/database.config';
-import { DatabaseModule } from './db/db.module';
+import { AppConfigModule } from './confing/app/config.module';
+import { AppConfigService } from './confing/app/config.service';
+import { DatabaseModule } from './database/db.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      ...dbConfig(),
-    } as TypeOrmModuleOptions),
-    DatabaseModule],
-  controllers: [AppController],
-  providers: [AppService],
+    TypeOrmModule.forRootAsync({
+      imports: [AppConfigModule],
+      inject: [ConfigService, AppConfigService],
+      useFactory: (config: ConfigService, appConfigService: AppConfigService) =>
+        config.get<TypeOrmModuleOptions>(
+          appConfigService.get('TYPEORM_CONFIG'),
+        ),
+    }),
+    DatabaseModule,
+    AppConfigModule,
+    AuthModule,
+  ],
+
+  providers: [AppConfigService],
 })
-export class AppModule { }
+export class AppModule {
+}
